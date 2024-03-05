@@ -119,6 +119,15 @@ class KubernetesBackend(BackendInterface):
             case _:
                 raise Exception("Unsupported service type")
 
+    def get_service_name(self, tank_index: int, service: ServiceType) -> str:
+        match service:
+            case ServiceType.LIGHTNING | ServiceType.CIRCUITBREAKER:
+                return f"lightning-{tank_index}"
+            case ServiceType.BITCOIN:
+                return f"bitcoind-{POD_PREFIX}-{tank_index:06d}"
+            case _:
+                raise Exception("Unsupported service type")
+
     def get_container_name(self, tank_index: int, service: ServiceType) -> str:
         """
         Override for ABC. Return service name to be used as host lookup.
@@ -261,7 +270,7 @@ class KubernetesBackend(BackendInterface):
         bitcoin_network: str = "regtest",
     ):
         b_pod = self.get_pod(self.get_pod_name(b_index, ServiceType.BITCOIN))
-        b_service = self.get_service(self.get_service_name(b_index))
+        b_service = self.get_service(self.get_service_name(b_index, ServiceType.BITCOIN))
         subdir = "/" if bitcoin_network == "main" else f"{bitcoin_network}/"
         base_dir = f"/root/.bitcoin/{subdir}message_capture"
         cmd = f"ls {base_dir}"
@@ -332,7 +341,7 @@ class KubernetesBackend(BackendInterface):
         defaults += f" -zmqpubrawtx=tcp://0.0.0.0:{tank.zmqtxport}"
         # connect to initial peers as defined in graph file
         for dst_index in tank.init_peers:
-            defaults += f" -addnode={self.get_service_name(dst_index)}"
+            defaults += f" -addnode={self.get_service_name(dst_index, ServiceType.BITCOIN)}"
         return defaults
 
     def create_bitcoind_container(self, tank: Tank) -> client.V1Container:
@@ -558,9 +567,6 @@ class KubernetesBackend(BackendInterface):
             ),
         )
 
-    def get_service_name(self, tank_index: int) -> str:
-        return f"bitcoind-{POD_PREFIX}-{tank_index:06d}"
-
     def get_tank_ipv4(self, index: int) -> str:
         pod_name = self.get_pod_name(index, ServiceType.BITCOIN)
         pod = self.get_pod(pod_name)
@@ -570,7 +576,7 @@ class KubernetesBackend(BackendInterface):
             return None
 
     def create_bitcoind_service(self, tank) -> client.V1Service:
-        service_name = self.get_service_name(tank.index)
+        service_name = self.get_service_name(tank.index, ServiceType.BITCOIN)
         self.log.debug(f"Creating bitcoind service {service_name} for tank {tank.index}")
         service = client.V1Service(
             api_version="v1",
