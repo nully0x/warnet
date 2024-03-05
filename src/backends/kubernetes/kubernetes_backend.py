@@ -472,7 +472,6 @@ class KubernetesBackend(BackendInterface):
     ) -> client.V1Container:
         # These args are appended to the Dockerfile `ENTRYPOINT ["lnd"]`
         bitcoind_rpc_host = f"{bitcoind_service_name}.{self.namespace}"
-        lightning_dns = f"lightning-{tank.index}.{self.namespace}"
         args = [
             "--noseedbackup",
             "--norest",
@@ -487,7 +486,6 @@ class KubernetesBackend(BackendInterface):
             f"--bitcoind.zmqpubrawblock={bitcoind_rpc_host}:{tank.zmqblockport}",
             f"--bitcoind.zmqpubrawtx={bitcoind_rpc_host}:{tank.zmqtxport}",
             f"--rpclisten=0.0.0.0:{tank.lnnode.rpc_port}",
-            f"--externalhosts={lightning_dns}",
             f"--alias={tank.index}",
         ]
         self.log.debug(f"Creating lightning container for tank {tank.index} using {args=:}")
