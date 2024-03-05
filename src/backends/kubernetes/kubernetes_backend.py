@@ -115,6 +115,12 @@ class KubernetesBackend(BackendInterface):
             return f"{self.network_name}-{POD_PREFIX}-ln-{tank_index:06d}"
         return f"{self.network_name}-{POD_PREFIX}-{tank_index:06d}"
 
+    def get_container_name(self, tank_index: int, service: ServiceType) -> str:
+        """
+        Override for ABC. Return service name to be used as host lookup.
+        """
+        return self.get_service_name(tank_index, service)
+
     def get_pod(self, pod_name: str) -> V1Pod | None:
         try:
             return cast(
