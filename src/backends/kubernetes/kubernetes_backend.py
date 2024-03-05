@@ -110,10 +110,14 @@ class KubernetesBackend(BackendInterface):
         decoded_bytes = base64.b64decode(base64_encoded_data)
         return decoded_bytes
 
-    def get_pod_name(self, tank_index: int, type: ServiceType) -> str:
-        if type == ServiceType.LIGHTNING or type == ServiceType.CIRCUITBREAKER:
-            return f"{self.network_name}-{POD_PREFIX}-ln-{tank_index:06d}"
-        return f"{self.network_name}-{POD_PREFIX}-{tank_index:06d}"
+    def get_pod_name(self, tank_index: int, service: ServiceType) -> str:
+        match service:
+            case ServiceType.LIGHTNING | ServiceType.CIRCUITBREAKER:
+                return f"{self.network_name}-{POD_PREFIX}-ln-{tank_index:06d}"
+            case ServiceType.BITCOIN:
+                return f"{self.network_name}-{POD_PREFIX}-{tank_index:06d}"
+            case _:
+                raise Exception("Unsupported service type")
 
     def get_container_name(self, tank_index: int, service: ServiceType) -> str:
         """
